@@ -25,7 +25,7 @@ public class AccountEntity {
     private ClientEntity client;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, columnDefinition = "VARCHAR(20)")
     private AccountType type;
 
     @Column(nullable = false, precision = 19, scale = 4)

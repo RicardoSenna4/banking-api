@@ -20,11 +20,11 @@ public class TransactionEntity {
     private LocalDateTime moment;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, columnDefinition = "VARCHAR(20)")
     private TransactionType type;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, columnDefinition = "VARCHAR(20)")
     private TransactionStatus status;
 
     @Column(nullable = false, precision = 19, scale = 4)
