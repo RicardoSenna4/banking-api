@@ -38,6 +38,12 @@ public class ClientController {
         return ResponseEntity.ok(bankingService.findByCpf(cpf));
     }
 
+    @PutMapping("/{cpf}")
+    public ResponseEntity<ClientResponse> update(@PathVariable String cpf,
+                                                 @Valid @RequestBody ClientUpdateRequest request) {
+        return ResponseEntity.ok(bankingService.updateClient(cpf, request));
+    }
+
     @GetMapping
     public ResponseEntity<Page<ClientResponse>> list(
             @PageableDefault(size = 10) Pageable pageable) {

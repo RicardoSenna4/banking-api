@@ -2,6 +2,7 @@ package com.ricardosenna.bankingapi.controller;
 
 import com.ricardosenna.bankingapi.dto.AccountCreateRequest;
 import com.ricardosenna.bankingapi.dto.AccountResponse;
+import com.ricardosenna.bankingapi.dto.AccountUpdateStatusRequest;
 import com.ricardosenna.bankingapi.service.BankingService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -41,5 +42,17 @@ public class AccountController {
     @GetMapping
     public ResponseEntity<List<AccountResponse>> listByClient(@RequestParam Long clientId) {
         return ResponseEntity.ok(bankingService.listAccountsByClient(clientId));
+    }
+
+    @PatchMapping("/{number}/status")
+    public ResponseEntity<AccountResponse> updateStatus(@PathVariable Integer number,
+                                                        @Valid @RequestBody AccountUpdateStatusRequest request) {
+        return ResponseEntity.ok(bankingService.updateAccountStatus(number, request));
+    }
+
+    @DeleteMapping("/{number}")
+    public ResponseEntity<Void> close(@PathVariable Integer number) {
+        bankingService.closeAccount(number);
+        return ResponseEntity.noContent().build();
     }
 }

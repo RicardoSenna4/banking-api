@@ -74,6 +74,15 @@ public class UserEntity implements UserDetails {
     public Instant getUpdatedAt() { return updatedAt; }
 
     public void deactivate() { this.active = false; this.updatedAt = Instant.now(); }
+    public void updateProfile(String name, String email) {
+        this.name = name;
+        this.email = email;
+        this.updatedAt = Instant.now();
+    }
+    public void updatePassword(String password) {
+        this.password = password;
+        this.updatedAt = Instant.now();
+    }
 
     @Override
     public String getUsername() { return email; }

@@ -2,6 +2,8 @@ package com.ricardosenna.bankingapi;
 
 import com.ricardosenna.bankingapi.dto.*;
 import com.ricardosenna.bankingapi.enums.AccountType;
+import com.ricardosenna.bankingapi.enums.AccountStatus;
+import com.ricardosenna.bankingapi.enums.TransactionType;
 import com.ricardosenna.bankingapi.exception.BusinessRuleException;
 import com.ricardosenna.bankingapi.exception.DuplicateResourceException;
 import com.ricardosenna.bankingapi.exception.ResourceNotFoundException;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
+import java.time.LocalDate;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.math.BigDecimal;
@@ -176,5 +179,46 @@ class BankingServiceIntegrationTest {
         var statement = bankingService.getStatement(account.accountNumber(), PageRequest.of(0, 10));
 
         assertEquals(2, statement.getTotalElements());
+    }
+
+    @Test
+    void shouldUpdateClientCompletely() {
+        var updated = bankingService.updateClient("12345678901", new ClientUpdateRequest("Updated Client", "updated@example.com"));
+        assertEquals("Updated Client", updated.name());
+        assertEquals("updated@example.com", updated.email());
+    }
+
+    @Test
+    void shouldRejectUpdateForUnknownClient() {
+        assertThrows(ResourceNotFoundException.class, () -> bankingService.updateClient("99999999999", new ClientUpdateRequest("Unknown", "unknown@example.com")));
+    }
+
+    @Test
+    void shouldBlockAndReactivateAccount() {
+        var account = bankingService.createAccount(new AccountCreateRequest("12345678901", AccountType.CHECKING, BigDecimal.ZERO, null));
+        bankingService.updateAccountStatus(account.accountNumber(), new AccountUpdateStatusRequest(AccountStatus.BLOCKED));
+        assertThrows(BusinessRuleException.class, () -> bankingService.deposit(new DepositRequest(account.accountNumber(), BigDecimal.TEN)));
+        var active = bankingService.updateAccountStatus(account.accountNumber(), new AccountUpdateStatusRequest(AccountStatus.ACTIVE));
+        assertEquals("ACTIVE", active.status());
+    }
+
+    @Test
+    void shouldCloseOnlyZeroBalanceAccount() {
+        var account = bankingService.createAccount(new AccountCreateRequest("12345678901", AccountType.CHECKING, BigDecimal.ZERO, null));
+        bankingService.deposit(new DepositRequest(account.accountNumber(), BigDecimal.TEN));
+        assertThrows(BusinessRuleException.class, () -> bankingService.closeAccount(account.accountNumber()));
+        bankingService.withdraw(new WithdrawRequest(account.accountNumber(), BigDecimal.TEN));
+        bankingService.closeAccount(account.accountNumber());
+        assertEquals("CLOSED", bankingService.findByAccountNumber(account.accountNumber()).status());
+    }
+
+    @Test
+    void shouldFilterStatementByType() {
+        var account = bankingService.createAccount(new AccountCreateRequest("12345678901", AccountType.CHECKING, BigDecimal.ZERO, null));
+        bankingService.deposit(new DepositRequest(account.accountNumber(), BigDecimal.valueOf(100)));
+        bankingService.withdraw(new WithdrawRequest(account.accountNumber(), BigDecimal.valueOf(20)));
+        var statement = bankingService.getStatement(account.accountNumber(), TransactionType.DEPOSIT, null, null, PageRequest.of(0, 10));
+        assertEquals(1, statement.getTotalElements());
+        assertEquals("DEPOSIT", statement.getContent().get(0).type());
     }
 }

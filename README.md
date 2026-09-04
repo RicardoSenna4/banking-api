@@ -47,6 +47,7 @@ com.ricardosenna.bankingapi
 | `POST` | `/api/clients` | Criar cliente |
 | `GET` | `/api/clients/{cpf}` | Buscar cliente por CPF |
 | `GET` | `/api/clients` | Listar todos os clientes (paginado) |
+| `PUT` | `/api/clients/{cpf}` | Atualizar nome e email do cliente |
 | `PATCH` | `/api/clients/{cpf}/status` | Alterar status (ACTIVE/BLOCKED) |
 
 ### Contas
@@ -56,6 +57,8 @@ com.ricardosenna.bankingapi
 | `POST` | `/api/accounts` | Criar conta (CHECKING ou SAVINGS) |
 | `GET` | `/api/accounts/{number}` | Buscar conta por número |
 | `GET` | `/api/accounts` | Listar contas por clientId |
+| `PATCH` | `/api/accounts/{number}/status` | Bloquear ou ativar conta |
+| `DELETE` | `/api/accounts/{number}` | Encerrar conta com saldo zero (exclusão lógica) |
 
 ### Transações
 
@@ -64,7 +67,14 @@ com.ricardosenna.bankingapi
 | `POST` | `/api/transactions/deposit` | Depositar valor |
 | `POST` | `/api/transactions/withdraw` | Sacar valor |
 | `POST` | `/api/transactions/transfer` | Transferir entre contas |
-| `GET` | `/api/transactions/accounts/{number}/statement` | Extrato da conta (paginado) |
+| `GET` | `/api/transactions/accounts/{number}/statement` | Extrato paginado e filtrável por `type`, `startDate` e `endDate` |
+
+### Usuário autenticado
+
+| Method | Endpoint | Descrição |
+|--------|----------|-----------|
+| `PUT` | `/api/users/me` | Atualizar nome e email do usuário autenticado |
+| `PATCH` | `/api/users/me/password` | Alterar senha informando a senha atual |
 
 ## Como Executar
 

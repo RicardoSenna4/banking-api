@@ -9,6 +9,9 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import com.ricardosenna.bankingapi.enums.TransactionType;
+
 @RestController
 @RequestMapping("/api/transactions")
 public class TransactionController {
@@ -37,7 +40,10 @@ public class TransactionController {
     @GetMapping("/accounts/{accountNumber}/statement")
     public ResponseEntity<Page<TransactionResponse>> getStatement(
             @PathVariable Integer accountNumber,
+            @RequestParam(required = false) TransactionType type,
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) LocalDate endDate,
             @PageableDefault(size = 20) Pageable pageable) {
-        return ResponseEntity.ok(bankingService.getStatement(accountNumber, pageable));
+        return ResponseEntity.ok(bankingService.getStatement(accountNumber, type, startDate, endDate, pageable));
     }
 }
