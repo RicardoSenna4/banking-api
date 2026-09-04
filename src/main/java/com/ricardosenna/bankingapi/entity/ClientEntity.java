@@ -12,6 +12,10 @@ public class ClientEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", unique = true)
+    private UserEntity user;
+
     @Column(nullable = false, length = 14, unique = true)
     private String cpf;
 
@@ -31,6 +35,11 @@ public class ClientEntity {
     public ClientEntity() {}
 
     public ClientEntity(String cpf, String name, String email, ClientStatus status) {
+        this(null, cpf, name, email, status);
+    }
+
+    public ClientEntity(UserEntity user, String cpf, String name, String email, ClientStatus status) {
+        this.user = user;
         this.cpf = cpf;
         this.name = name;
         this.email = email;
@@ -40,6 +49,9 @@ public class ClientEntity {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public UserEntity getUser() { return user; }
+    public void setUser(UserEntity user) { this.user = user; }
 
     public String getCpf() { return cpf; }
     public void setCpf(String cpf) { this.cpf = cpf; }

@@ -26,4 +26,7 @@ app:
   jwt:
     issuer: banking-api
     expiration-seconds: 7200
+    refresh-expiration-seconds: ${JWT_REFRESH_EXPIRATION_SECONDS:604800}
     secret: ${JWT_SECRET:c2VjdXJlLWJhbmtpbmctYXBpLXNlY3JldC1rZXktMjAyNA==}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

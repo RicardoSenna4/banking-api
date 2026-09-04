@@ -39,6 +39,12 @@ com.ricardosenna.bankingapi
 |--------|----------|-----------|
 | `POST` | `/api/auth/register` | Registrar novo usuário |
 | `POST` | `/api/auth/login` | Login e obtenção de token JWT |
+| `POST` | `/api/auth/refresh` | Renovar access token usando refresh token |
+| `POST` | `/api/auth/logout` | Revogar refresh token |
+
+### Documentação interativa
+
+Com a aplicação em execução, a documentação está disponível em [`/swagger-ui.html`](http://localhost:8080/swagger-ui.html) e o contrato OpenAPI em [`/v3/api-docs`](http://localhost:8080/v3/api-docs). A interface possui o botão **Authorize** para informar o Bearer JWT.
 
 ### Clientes
 
@@ -150,6 +156,20 @@ curl -X POST http://localhost:8080/api/transactions/deposit \
   -H "Content-Type: application/json" \
   -d '{"accountNumber": 1001, "amount": "500.00"}'
 ```
+
+### Ownership e autorização
+
+Cada cliente criado por um usuário autenticado é vinculado ao seu usuário (`User → Client → Account`). Usuários comuns só podem consultar e operar suas próprias contas; a conta de destino de uma transferência pode pertencer a outro cliente, mas a conta de origem sempre precisa pertencer ao usuário autenticado. Usuários `ADMIN` podem consultar clientes e contas de qualquer usuário e executar operações administrativas.
+
+O endpoint `POST /api/clients` deve ser chamado autenticado e um usuário só pode possuir um perfil de cliente. A migration `V6__link_clients_to_users.sql` mantém `user_id` anulável para permitir migração gradual de dados antigos.
+
+### Recursos operacionais
+
+- **Rate limiting:** login é limitado a 5 requisições por minuto por IP; operações em `/api/transactions/**` são limitadas a 30 por minuto por IP. O excesso retorna `429` e `Retry-After: 60`.
+- **CORS:** a origem padrão de desenvolvimento é `http://localhost:5173`; configure `CORS_ALLOWED_ORIGINS` com uma lista separada por vírgulas em outros ambientes.
+- **Logs:** o Logback emite eventos em JSON e não registra senhas nem JWTs completos.
+- **Cache:** consultas de cliente podem ser cacheadas e o cache é invalidado em atualizações. Saldos e extratos não são cacheados para evitar dados financeiros obsoletos.
+- **Refresh token:** refresh tokens são armazenados apenas como hash, expiram em 7 dias por padrão e são revogados no logout e na troca de senha. Configure `JWT_REFRESH_EXPIRATION_SECONDS` quando necessário.
 
 ## Tratamento de Erros
 

@@ -1,0 +1,9 @@
+<configuration>
+    <property name="SERVICE" value="banking-api"/>
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>{"timestamp":"%date{ISO8601}","level":"%level","service":"${SERVICE}","logger":"%logger{36}","message":"%replace(%msg){'"','\\"'}"}%n</pattern>
+        </encoder>
+    </appender>
+    <root level="INFO"><appender-ref ref="CONSOLE"/></root>
+</configuration>

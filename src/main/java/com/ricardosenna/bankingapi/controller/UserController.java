@@ -6,9 +6,11 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
 @RequestMapping("/api/users/me")
+@Tag(name = "Users", description = "Authenticated user profile and password")
 public class UserController {
     private final AuthService authService;
     public UserController(AuthService authService) { this.authService = authService; }
