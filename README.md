@@ -169,6 +169,7 @@ O endpoint `POST /api/clients` deve ser chamado autenticado e um usuário só po
 - **CORS:** a origem padrão de desenvolvimento é `http://localhost:5173`; configure `CORS_ALLOWED_ORIGINS` com uma lista separada por vírgulas em outros ambientes.
 - **Logs:** o Logback emite eventos em JSON e não registra senhas nem JWTs completos.
 - **Cache:** consultas de cliente podem ser cacheadas e o cache é invalidado em atualizações. Saldos e extratos não são cacheados para evitar dados financeiros obsoletos.
+- **Redis:** o `docker-compose.yml` inclui Redis. O padrão usa cache local para facilitar os testes; defina `CACHE_TYPE=redis`, `REDIS_HOST` e `REDIS_PORT` para ativar cache distribuído.
 - **Refresh token:** refresh tokens são armazenados apenas como hash, expiram em 7 dias por padrão e são revogados no logout e na troca de senha. Configure `JWT_REFRESH_EXPIRATION_SECONDS` quando necessário.
 
 ## Tratamento de Erros
