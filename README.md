@@ -59,13 +59,19 @@ O projeto possui autenticação JWT, refresh token, controle de acesso por usuá
 
 ### Swagger UI
 
+As capturas abaixo mostram a documentação interativa da API organizada nos grupos `Accounts`, `Clients`, `Transactions`, `Users` e `Authentication`. Os cadeados indicam as rotas protegidas por JWT.
+
 ![Swagger UI — Accounts e Clients](docs/images/swagger-overview-part1.png)
 
 ![Swagger UI — Transactions, Users e Authentication](docs/images/swagger-overview-part2.png)
 
 ### Autorização com JWT
 
+O botão **Authorize** permite informar o access token no esquema `bearerAuth`. Depois da autorização, o Swagger envia automaticamente o header `Authorization: Bearer <accessToken>` nas requisições protegidas.
+
 ![Autorização Bearer JWT](docs/images/swagger-jwt-authorization.png)
+
+Para executar uma chamada, abra o endpoint, selecione **Try it out**, preencha os parâmetros ou o JSON e clique em **Execute**. O Swagger exibe a URL, o comando `curl`, o status HTTP e o corpo da resposta.
 
 ### Login
 
@@ -169,10 +175,6 @@ Com a aplicação em execução:
 - [Swagger UI](http://localhost:8080/swagger-ui.html)
 - [OpenAPI JSON](http://localhost:8080/v3/api-docs)
 
-O Swagger UI organiza a API por grupos de negócio: `Authentication`, `Users`, `Clients`, `Accounts` e `Transactions`. Cada operação apresenta o método HTTP, a rota, os parâmetros aceitos, o corpo da requisição, os códigos de resposta e o modelo JSON retornado.
-
-Os cadeados exibidos ao lado das rotas indicam endpoints protegidos. As rotas de autenticação, como registro e login, podem ser executadas sem token. As demais operações exigem um access token JWT válido.
-
 Para testar rotas protegidas no Swagger:
 
 1. Execute o login.
@@ -180,24 +182,6 @@ Para testar rotas protegidas no Swagger:
 3. Clique em **Authorize**.
 4. Informe `Bearer <accessToken>`.
 5. Execute a operação desejada.
-
-Depois de autorizado, o Swagger envia automaticamente o header abaixo nas requisições protegidas:
-
-```http
-Authorization: Bearer <accessToken>
-```
-
-Para executar uma operação, abra o endpoint desejado, clique em **Try it out**, preencha os parâmetros ou o JSON solicitado e selecione **Execute**. A interface exibe a URL utilizada, o comando `curl`, o status HTTP, os headers e o corpo da resposta.
-
-Entre os fluxos que podem ser testados diretamente pela interface estão:
-
-- registro e login de usuários;
-- criação de clientes e contas;
-- depósitos, saques e transferências;
-- consulta de extrato com filtros e paginação;
-- renovação e revogação de refresh tokens;
-- atualização do perfil e da senha do usuário;
-- respostas de erro de validação, autenticação, autorização e recurso não encontrado.
 
 ## Endpoints
 
