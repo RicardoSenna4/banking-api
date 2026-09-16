@@ -1,184 +1,484 @@
-# Banking API RESTful
+# Banking API
 
-API RESTful para gerenciamento de transações bancárias, construída com **Spring Boot 3.3**, **Spring Security + JWT**, **Spring Data JPA** e **Flyway** para migrações de banco de dados.
+[![Java](https://img.shields.io/badge/Java-21-red?logo=openjdk)](https://www.oracle.com/java/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen?logo=springboot)](https://spring.io/projects/spring-boot)
+[![Maven](https://img.shields.io/badge/Maven-3.9+-C71A36?logo=apachemaven)](https://maven.apache.org/)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-blue?logo=mysql)](https://www.mysql.com/)
+[![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-## Tecnologias
+API REST para simulação de operações bancárias, desenvolvida com Java 21 e Spring Boot. O projeto demonstra a construção de um backend organizado, seguro e preparado para evolução, com autenticação JWT, controle de ownership, operações financeiras, migrations versionadas, documentação OpenAPI, rate limiting, logs estruturados e cache opcional com Redis.
 
-| Tecnologia | Versão | Descrição |
-|---|---|---|
-| Java | 21 | Linguagem base |
-| Spring Boot | 3.3.x | Framework principal |
-| Spring Security | 6.x | Autenticação e autorização |
-| JWT (Nimbus JOSE+JWT) | 9.x | Token-based authentication |
-| Spring Data JPA | 3.x | Persistência com Hibernate |
-| Flyway | 10.x | Versionamento de banco de dados |
-| MySQL | 8.x | Banco de dados |
-| H2 | 2.x | Banco em memória para testes |
-| Maven | 3.9.x | Build e dependências |
+> **Finalidade educacional:** este projeto é uma simulação para estudo e portfólio. Não deve ser utilizado para processar dinheiro real sem auditoria de segurança, controles antifraude, observabilidade, alta disponibilidade e conformidade regulatória.
+
+## Sumário
+
+- [Funcionalidades](#funcionalidades)
+- [Destaques técnicos](#destaques-técnicos)
+- [Arquitetura](#arquitetura)
+- [Modelo de domínio](#modelo-de-domínio)
+- [Fluxo de autenticação](#fluxo-de-autenticação)
+- [Tecnologias](#tecnologias)
+- [Como executar](#como-executar)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Swagger/OpenAPI](#swaggeropenapi)
+- [Endpoints](#endpoints)
+- [Exemplos de uso](#exemplos-de-uso)
+- [Segurança](#segurança)
+- [Tratamento de erros](#tratamento-de-erros)
+- [Testes](#testes)
+- [Migrations](#migrations)
+- [Próximas evoluções](#próximas-evoluções)
+- [Licença](#licença)
+
+## Funcionalidades
+
+- Registro e autenticação de usuários.
+- Access token JWT e refresh token persistido, com hash, expiração e revogação.
+- Logout e revogação de refresh token.
+- Roles `USER` e `ADMIN`.
+- Relacionamento de ownership `User → Client → Account`.
+- Cadastro e atualização de clientes.
+- Criação, bloqueio, ativação e encerramento lógico de contas.
+- Contas dos tipos `CHECKING` e `SAVINGS`.
+- Depósitos, saques e transferências entre contas.
+- Extrato paginado e filtrável por tipo e período.
+- Validação de requests com Bean Validation.
+- Tratamento global e padronizado de exceções.
+- Rate limiting para autenticação e operações financeiras.
+- CORS configurável para integração com frontend.
+- Logs estruturados em JSON.
+- Cache de clientes com suporte a Redis opcional.
+- Documentação interativa com Swagger UI e OpenAPI.
+- Migrations de banco de dados com Flyway.
+
+## Destaques técnicos
+
+Este projeto demonstra conhecimentos em:
+
+- Desenvolvimento de APIs REST com Spring Boot.
+- Arquitetura em camadas (`Controller → Service → Repository`).
+- Autenticação e autorização com Spring Security.
+- Geração e validação de JWT usando Nimbus JOSE+JWT.
+- Refresh token seguro e revogável.
+- Controle de acesso baseado em ownership e roles.
+- Modelagem relacional com JPA/Hibernate.
+- Versionamento de schema com Flyway.
+- Operações monetárias com `BigDecimal`.
+- Testes unitários, de integração e de endpoints.
+- Documentação de API com OpenAPI.
+- Cache local e cache distribuído com Redis.
+- Configuração por variáveis de ambiente.
+- Execução das dependências com Docker Compose.
 
 ## Arquitetura
 
+A aplicação utiliza uma arquitetura em camadas. Os controllers recebem as requisições HTTP, os services concentram as regras de negócio e os repositories realizam o acesso aos dados por meio do Spring Data JPA.
+
+```mermaid
+flowchart TB
+    Client[Cliente HTTP\nSwagger / Insomnia / Frontend]
+
+    subgraph API[Banking API - Spring Boot]
+        RateLimit[Rate Limiting]
+        Security[Spring Security\nJWT Filter]
+        Controller[REST Controllers]
+        Validation[Bean Validation]
+        Service[Services\nRegras de negócio]
+        Exception[Global Exception Handler]
+        Cache[Spring Cache]
+        OpenAPI[OpenAPI / Swagger]
+        Logs[Logs JSON]
+    end
+
+    subgraph Persistence[Persistência]
+        Repository[Spring Data JPA / Hibernate]
+        MySQL[(MySQL)]
+        Flyway[Flyway Migrations]
+    end
+
+    Redis[(Redis opcional)]
+
+    Client --> RateLimit
+    RateLimit --> Security
+    Security --> Controller
+    Controller --> Validation
+    Validation --> Service
+    Controller --> Exception
+    Service --> Repository
+    Repository --> MySQL
+    Flyway --> MySQL
+    Service --> Cache
+    Cache -. CACHE_TYPE=redis .-> Redis
+    Controller -. documentação .-> OpenAPI
+    Service -. eventos operacionais .-> Logs
 ```
-com.ricardosenna.bankingapi
-├── config          → SecurityConfig (Spring Security + JWT)
-├── controller      → REST endpoints (Clients, Accounts, Transactions, Auth)
-├── dto             → Request/Response records com validação (@Valid)
-├── entity          → JPA entities (User, Client, Account, Transaction)
-├── enums           → Enums de domínio (AccountType, TransactionType, etc.)
-├── exception       → GlobalExceptionHandler + custom exceptions
-├── repository      → Spring Data JPA interfaces
-├── security        → JwtService, JwtAuthenticationFilter
-├── service         → BankingService (regras de negócio), AuthService
+
+### Organização do código
+
+```text
+src/main/java/com/ricardosenna/bankingapi
+├── config        Configurações de segurança, CORS e OpenAPI
+├── controller    Endpoints REST
+├── dto           Requests e responses da API
+├── entity        Entidades JPA
+├── enums         Enumerações de domínio
+├── exception     Exceções e tratamento global
+├── repository    Interfaces Spring Data JPA
+├── security      JWT e rate limiting
+└── service       Regras de negócio
 ```
+
+## Modelo de domínio
+
+O relacionamento principal garante que cada usuário comum opere somente os recursos que lhe pertencem. Usuários `ADMIN` possuem acesso administrativo conforme as regras de autorização.
+
+```mermaid
+erDiagram
+    USER ||--o| CLIENT : owns
+    CLIENT ||--o{ ACCOUNT : has
+    ACCOUNT ||--o{ TRANSACTION : records
+    USER ||--o{ REFRESH_TOKEN : receives
+
+    USER {
+        bigint id
+        string name
+        string email
+        string role
+        boolean active
+    }
+
+    CLIENT {
+        bigint id
+        bigint user_id
+        string cpf
+        string name
+        string email
+        string status
+    }
+
+    ACCOUNT {
+        bigint id
+        bigint client_id
+        int account_number
+        string type
+        decimal balance
+        string status
+    }
+
+    TRANSACTION {
+        bigint id
+        bigint account_id
+        string type
+        decimal amount
+        datetime created_at
+    }
+
+    REFRESH_TOKEN {
+        bigint id
+        bigint user_id
+        string token_hash
+        datetime expires_at
+        boolean revoked
+    }
+```
+
+## Fluxo de autenticação
+
+A API utiliza um access token JWT para autenticar as requisições e um refresh token persistido para renovar a sessão sem exigir novo login.
+
+```text
+POST /api/auth/login
+        │
+        ▼
+Access Token JWT + Refresh Token
+        │
+        ▼
+Requisições com Authorization: Bearer <access-token>
+        │
+        ▼
+Access token expira
+        │
+        ▼
+POST /api/auth/refresh
+        │
+        ▼
+Novo access token
+        │
+        ▼
+POST /api/auth/logout
+        │
+        ▼
+Refresh token revogado
+```
+
+O refresh token é gerado com valor aleatório seguro e armazenado no banco somente como hash SHA-256. Ele também é invalidado quando o usuário altera a senha.
+
+## Tecnologias
+
+| Tecnologia | Versão | Utilização |
+|---|---:|---|
+| Java | 21 | Linguagem principal |
+| Spring Boot | 3.2.5 | Framework da aplicação |
+| Spring Web | 6.x | API REST |
+| Spring Security | 6.x | Autenticação e autorização |
+| Nimbus JOSE+JWT | 9.37.3 | JWT |
+| Spring Data JPA | 3.x | Persistência e Hibernate |
+| Flyway | 10.x | Migrations |
+| MySQL | 8.x | Banco principal |
+| Redis | 7.x | Cache opcional |
+| H2 | 2.x | Banco em memória para testes |
+| Springdoc OpenAPI | 2.3.0 | Swagger UI e documentação |
+| Maven | 3.9+ | Build e gerenciamento de dependências |
+| Docker Compose | 3.8 | Infraestrutura local |
+
+## Como executar
+
+### Pré-requisitos
+
+- Java 21 ou superior.
+- Maven 3.9 ou superior.
+- Docker e Docker Compose — recomendado para MySQL e Redis.
+
+### 1. Clonar o projeto
+
+```bash
+git clone https://github.com/RicardoSenna4/banking-api.git
+cd banking-api
+```
+
+### 2. Iniciar a infraestrutura
+
+```bash
+docker compose up -d
+```
+
+Esse comando inicia:
+
+- MySQL em `localhost:3306`;
+- Redis em `localhost:6379`.
+
+### 3. Configurar as variáveis de ambiente
+
+```bash
+export DB_USERNAME="root"
+export DB_PASSWORD="secret"
+export JWT_SECRET="$(openssl rand -base64 32)"
+export CORS_ALLOWED_ORIGINS="http://localhost:5173"
+```
+
+### 4. Executar a aplicação
+
+```bash
+mvn spring-boot:run
+```
+
+A API ficará disponível em:
+
+```text
+http://localhost:8080
+```
+
+As migrations do Flyway são executadas automaticamente na inicialização.
+
+## Variáveis de ambiente
+
+| Variável | Padrão | Descrição |
+|---|---|---|
+| `DB_USERNAME` | `root` | Usuário do banco |
+| `DB_PASSWORD` | `secret` | Senha do banco |
+| `JWT_SECRET` | Valor de desenvolvimento | Chave usada para assinar JWT; altere em ambientes reais |
+| `JWT_REFRESH_EXPIRATION_SECONDS` | `604800` | Validade do refresh token, em segundos |
+| `CACHE_TYPE` | `simple` | Use `redis` para cache distribuído |
+| `REDIS_HOST` | `localhost` | Host do Redis |
+| `REDIS_PORT` | `6379` | Porta do Redis |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Origens permitidas pelo CORS |
+
+> Em produção, nunca utilize credenciais, chaves JWT ou senhas padrão. Prefira secrets managers e variáveis protegidas do ambiente de execução.
+
+## Swagger/OpenAPI
+
+Com a aplicação em execução, acesse:
+
+- [Swagger UI](http://localhost:8080/swagger-ui.html)
+- [OpenAPI JSON](http://localhost:8080/v3/api-docs)
+
+Para testar endpoints protegidos:
+
+1. Execute o login.
+2. Copie o `accessToken` retornado.
+3. Clique em **Authorize** no Swagger UI.
+4. Informe `Bearer <accessToken>`.
+5. Execute as operações autenticadas.
 
 ## Endpoints
 
 ### Autenticação
 
-| Method | Endpoint | Descrição |
-|--------|----------|-----------|
-| `POST` | `/api/auth/register` | Registrar novo usuário |
-| `POST` | `/api/auth/login` | Login e obtenção de token JWT |
-| `POST` | `/api/auth/refresh` | Renovar access token usando refresh token |
-| `POST` | `/api/auth/logout` | Revogar refresh token |
-
-### Documentação interativa
-
-Com a aplicação em execução, a documentação está disponível em [`/swagger-ui.html`](http://localhost:8080/swagger-ui.html) e o contrato OpenAPI em [`/v3/api-docs`](http://localhost:8080/v3/api-docs). A interface possui o botão **Authorize** para informar o Bearer JWT.
+| Método | Endpoint | Autenticação | Permissão | Descrição |
+|---|---|---|---|---|
+| `POST` | `/api/auth/register` | Não | Pública | Registra um usuário |
+| `POST` | `/api/auth/login` | Não | Pública | Gera access e refresh tokens |
+| `POST` | `/api/auth/refresh` | Não | Pública | Renova o access token |
+| `POST` | `/api/auth/logout` | Não | Pública | Revoga o refresh token |
 
 ### Clientes
 
-| Method | Endpoint | Descrição |
-|--------|----------|-----------|
-| `POST` | `/api/clients` | Criar cliente |
-| `GET` | `/api/clients/{cpf}` | Buscar cliente por CPF |
-| `GET` | `/api/clients` | Listar todos os clientes (paginado) |
-| `PUT` | `/api/clients/{cpf}` | Atualizar nome e email do cliente |
-| `PATCH` | `/api/clients/{cpf}/status` | Alterar status (ACTIVE/BLOCKED) |
+| Método | Endpoint | Autenticação | Permissão | Descrição |
+|---|---|---|---|---|
+| `POST` | `/api/clients` | JWT | Usuário autenticado | Cria o perfil do cliente |
+| `GET` | `/api/clients/{cpf}` | JWT | Ownership ou `ADMIN` | Busca cliente por CPF |
+| `GET` | `/api/clients` | JWT | `ADMIN` | Lista clientes com paginação |
+| `PUT` | `/api/clients/{cpf}` | JWT | Ownership | Atualiza nome e email |
+| `PATCH` | `/api/clients/{cpf}/status` | JWT | `ADMIN` | Altera status do cliente |
 
 ### Contas
 
-| Method | Endpoint | Descrição |
-|--------|----------|-----------|
-| `POST` | `/api/accounts` | Criar conta (CHECKING ou SAVINGS) |
-| `GET` | `/api/accounts/{number}` | Buscar conta por número |
-| `GET` | `/api/accounts` | Listar contas por clientId |
-| `PATCH` | `/api/accounts/{number}/status` | Bloquear ou ativar conta |
-| `DELETE` | `/api/accounts/{number}` | Encerrar conta com saldo zero (exclusão lógica) |
+| Método | Endpoint | Autenticação | Permissão | Descrição |
+|---|---|---|---|---|
+| `POST` | `/api/accounts` | JWT | Ownership | Cria uma conta |
+| `GET` | `/api/accounts/{number}` | JWT | Ownership ou `ADMIN` | Consulta conta por número |
+| `GET` | `/api/accounts?clientId={id}` | JWT | Ownership ou `ADMIN` | Lista contas do cliente |
+| `PATCH` | `/api/accounts/{number}/status` | JWT | Ownership ou `ADMIN` | Bloqueia ou ativa conta |
+| `DELETE` | `/api/accounts/{number}` | JWT | Ownership ou `ADMIN` | Encerra conta com saldo zero |
 
 ### Transações
 
-| Method | Endpoint | Descrição |
-|--------|----------|-----------|
-| `POST` | `/api/transactions/deposit` | Depositar valor |
-| `POST` | `/api/transactions/withdraw` | Sacar valor |
-| `POST` | `/api/transactions/transfer` | Transferir entre contas |
-| `GET` | `/api/transactions/accounts/{number}/statement` | Extrato paginado e filtrável por `type`, `startDate` e `endDate` |
+| Método | Endpoint | Autenticação | Permissão | Descrição |
+|---|---|---|---|---|
+| `POST` | `/api/transactions/deposit` | JWT | Ownership | Realiza depósito |
+| `POST` | `/api/transactions/withdraw` | JWT | Ownership | Realiza saque |
+| `POST` | `/api/transactions/transfer` | JWT | Ownership da origem | Transfere entre contas |
+| `GET` | `/api/transactions/accounts/{number}/statement` | JWT | Ownership ou `ADMIN` | Consulta extrato paginado e filtrável |
+
+Filtros disponíveis no extrato:
+
+```text
+?type=DEPOSIT&startDate=2026-01-01&endDate=2026-12-31&page=0&size=10
+```
 
 ### Usuário autenticado
 
-| Method | Endpoint | Descrição |
-|--------|----------|-----------|
-| `PUT` | `/api/users/me` | Atualizar nome e email do usuário autenticado |
-| `PATCH` | `/api/users/me/password` | Alterar senha informando a senha atual |
+| Método | Endpoint | Autenticação | Descrição |
+|---|---|---|---|
+| `PUT` | `/api/users/me` | JWT | Atualiza nome e email |
+| `PATCH` | `/api/users/me/password` | JWT | Altera senha informando a senha atual |
 
-## Como Executar
+## Exemplos de uso
 
-### Pré-requisitos
-- Java 21+
-- Maven 3.9+
-- MySQL 8.x (ou Docker)
+### Registrar usuário
 
-### 1. Configurar banco de dados
-
-**Opção A — Docker (recomendado):**
-```bash
-docker-compose up -d
-```
-
-**Opção B — MySQL local:**
-```sql
-CREATE DATABASE banking_api CHARACTER SET utf8mb4;
-```
-
-### 2. Configurar variáveis de ambiente
-```bash
-export DB_URL="jdbc:mysql://localhost:3306/banking_api"
-export DB_USERNAME="root"
-export DB_PASSWORD="secret"
-export JWT_SECRET="$(openssl rand -base64 32)"
-```
-
-### 3. Build e execução
-```bash
-mvn clean install
-mvn spring-boot:run
-```
-
-A API estará disponível em `http://localhost:8080`
-
-## Exemplos de Uso
-
-### 1. Registrar usuário
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"name": "Ricardo Senna", "email": "ricardo@example.com", "password": "SenhaSegura123"}'
+  -d '{
+    "name": "Ricardo Senna",
+    "email": "ricardo@example.com",
+    "password": "SenhaSegura123"
+  }'
 ```
 
-### 2. Login
+### Fazer login
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "ricardo@example.com", "password": "SenhaSegura123"}'
+  -d '{
+    "email": "ricardo@example.com",
+    "password": "SenhaSegura123"
+  }'
 ```
 
-### 3. Criar cliente (requer token)
-```bash
-curl -X POST http://localhost:8080/api/clients \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"cpf": "12345678901", "name": "João Silva", "email": "joao@example.com"}'
-```
-
-### 4. Criar conta
-```bash
-curl -X POST http://localhost:8080/api/accounts \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"cpf": "12345678901", "type": "CHECKING", "withdrawFee": "2.00", "interestRate": null}'
-```
-
-### 5. Depositar
-```bash
-curl -X POST http://localhost:8080/api/transactions/deposit \
-  -H "Authorization: Bearer <TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{"accountNumber": 1001, "amount": "500.00"}'
-```
-
-### Ownership e autorização
-
-Cada cliente criado por um usuário autenticado é vinculado ao seu usuário (`User → Client → Account`). Usuários comuns só podem consultar e operar suas próprias contas; a conta de destino de uma transferência pode pertencer a outro cliente, mas a conta de origem sempre precisa pertencer ao usuário autenticado. Usuários `ADMIN` podem consultar clientes e contas de qualquer usuário e executar operações administrativas.
-
-O endpoint `POST /api/clients` deve ser chamado autenticado e um usuário só pode possuir um perfil de cliente. A migration `V6__link_clients_to_users.sql` mantém `user_id` anulável para permitir migração gradual de dados antigos.
-
-### Recursos operacionais
-
-- **Rate limiting:** login é limitado a 5 requisições por minuto por IP; operações em `/api/transactions/**` são limitadas a 30 por minuto por IP. O excesso retorna `429` e `Retry-After: 60`.
-- **CORS:** a origem padrão de desenvolvimento é `http://localhost:5173`; configure `CORS_ALLOWED_ORIGINS` com uma lista separada por vírgulas em outros ambientes.
-- **Logs:** o Logback emite eventos em JSON e não registra senhas nem JWTs completos.
-- **Cache:** consultas de cliente podem ser cacheadas e o cache é invalidado em atualizações. Saldos e extratos não são cacheados para evitar dados financeiros obsoletos.
-- **Redis:** o `docker-compose.yml` inclui Redis. O padrão usa cache local para facilitar os testes; defina `CACHE_TYPE=redis`, `REDIS_HOST` e `REDIS_PORT` para ativar cache distribuído.
-- **Refresh token:** refresh tokens são armazenados apenas como hash, expiram em 7 dias por padrão e são revogados no logout e na troca de senha. Configure `JWT_REFRESH_EXPIRATION_SECONDS` quando necessário.
-
-## Tratamento de Erros
-
-A API retorna erros padronizados:
+Resposta simplificada:
 
 ```json
 {
-  "timestamp": "2026-08-20T15:00:00Z",
+  "accessToken": "eyJ...",
+  "refreshToken": "random-value...",
+  "expiresIn": 7200
+}
+```
+
+### Criar cliente
+
+```bash
+curl -X POST http://localhost:8080/api/clients \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cpf": "12345678901",
+    "name": "João Silva",
+    "email": "joao@example.com"
+  }'
+```
+
+### Criar conta
+
+```bash
+curl -X POST http://localhost:8080/api/accounts \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cpf": "12345678901",
+    "type": "CHECKING",
+    "withdrawFee": "2.00",
+    "interestRate": null
+  }'
+```
+
+### Realizar depósito
+
+```bash
+curl -X POST http://localhost:8080/api/transactions/deposit \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "accountNumber": 1001,
+    "amount": "500.00"
+  }'
+```
+
+### Renovar access token
+
+```bash
+curl -X POST http://localhost:8080/api/auth/refresh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "refreshToken": "<REFRESH_TOKEN>"
+  }'
+```
+
+## Segurança
+
+A API aplica as seguintes medidas:
+
+- autenticação stateless com JWT;
+- autorização baseada nas roles `USER` e `ADMIN`;
+- controle de acesso por ownership;
+- senhas armazenadas com BCrypt;
+- refresh token persistido somente como hash SHA-256;
+- expiração e revogação de refresh tokens;
+- revogação dos tokens após alteração de senha;
+- rate limiting para login e operações em `/api/transactions/**`;
+- resposta `429 Too Many Requests` com header `Retry-After`;
+- CORS configurável por ambiente;
+- endpoints protegidos por padrão;
+- logs sem senhas ou JWTs completos.
+
+## Recursos operacionais
+
+- **Rate limiting:** login limitado a 5 requisições por minuto por IP; transações limitadas a 30 requisições por minuto por IP.
+- **CORS:** origem padrão `http://localhost:5173`, configurável com `CORS_ALLOWED_ORIGINS`.
+- **Logs:** Logback configurado para emitir eventos em JSON.
+- **Cache:** clientes podem ser cacheados; saldos e extratos não são cacheados para evitar dados financeiros obsoletos.
+- **Redis:** disponível no Docker Compose e ativado com `CACHE_TYPE=redis`.
+
+## Tratamento de erros
+
+As exceções são convertidas pelo `GlobalExceptionHandler` para um formato consistente:
+
+```json
+{
+  "timestamp": "2026-09-16T15:00:00Z",
   "status": 400,
   "error": "Bad Request",
   "message": "There are invalid fields in the request",
@@ -190,46 +490,66 @@ A API retorna erros padronizados:
 ```
 
 | Status | Significado |
-|--------|-------------|
-| 201 | Criado com sucesso |
-| 400 | Erro de validação ou regra de negócio |
-| 401 | Token inválido ou ausente |
-| 403 | Acesso negado |
-| 404 | Recurso não encontrado |
-| 409 | Conflito (CPF duplicado) |
-| 500 | Erro interno |
+|---:|---|
+| `201` | Recurso criado com sucesso |
+| `204` | Operação concluída sem conteúdo |
+| `400` | Validação ou regra de negócio inválida |
+| `401` | Token ausente, inválido ou expirado |
+| `403` | Usuário sem permissão ou sem ownership |
+| `404` | Recurso não encontrado |
+| `409` | Conflito, como CPF ou email duplicado |
+| `429` | Rate limit excedido |
+| `500` | Erro interno inesperado |
 
 ## Testes
+
+Execute a suíte com:
 
 ```bash
 mvn test
 ```
 
-Os testes usam H2 em memória e cobrem:
-- Integração completa da service layer
-- Autenticação JWT (geração, validação, rejeição)
-- Endpoints REST (MockMvc)
-- Casos negativos (saldo insuficiente, CPF duplicado, cliente bloqueado)
+Os testes utilizam H2 em memória e cobrem:
 
-## Migrations Flyway
+- integração da camada de serviços;
+- geração, validação e rejeição de JWT;
+- endpoints REST com MockMvc;
+- validações e regras de negócio;
+- saldo insuficiente e cliente bloqueado;
+- refresh token e revogação;
+- isolamento de contas entre usuários;
+- cenários negativos.
 
-| Version | Descrição |
-|---------|-----------|
-| V1 | Cria tabela `users` (autenticação) |
-| V2 | Cria tabela `clients` |
-| V3 | Cria tabela `accounts` |
-| V4 | Cria tabela `transactions` |
+## Migrations
 
-## Próximos Passos (Spring Boot Avançado)
+| Versão | Descrição |
+|---|---|
+| `V1` | Cria a tabela `users` |
+| `V2` | Cria a tabela `clients` |
+| `V3` | Cria a tabela `accounts` |
+| `V4` | Cria a tabela `transactions` |
+| `V5` | Adiciona status ao ciclo de vida das contas |
+| `V6` | Relaciona clientes aos usuários |
+| `V7` | Cria refresh tokens persistidos e revogáveis |
 
-- [ ] Adicionar cache com `@Cacheable` (Redis)
-- [ ] Implementar Rate Limiting
-- [ ] Adicionar logs estruturados (JSON)
-- [ ] Configurar CORS para frontend
-- [ ] Implementar refresh token
-- [ ] Adicionar Swagger/OpenAPI documentation
-- [ ] Deploy com Docker Compose completo
+## Próximas evoluções
+
+- [ ] Adicionar pipeline de CI/CD com GitHub Actions.
+- [ ] Criar testes de contrato da API.
+- [ ] Adicionar métricas com Spring Actuator e Prometheus.
+- [ ] Implementar tracing distribuído.
+- [ ] Criar um frontend demonstrativo.
+- [ ] Publicar a aplicação em um ambiente cloud.
+- [ ] Adicionar testes de carga para operações financeiras.
+- [ ] Evoluir o rate limiting para armazenamento distribuído em Redis.
 
 ## Licença
 
-MIT License — ver arquivo `LICENSE`
+Este projeto está licenciado sob a [MIT License](LICENSE).
+
+## Autor
+
+**Ricardo Senna**
+
+- GitHub: [RicardoSenna4](https://github.com/RicardoSenna4)
+- Repositório: [banking-api](https://github.com/RicardoSenna4/banking-api)
