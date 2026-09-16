@@ -14,6 +14,7 @@ API REST para simulação de operações bancárias, desenvolvida com Java 21 e 
 
 - [Funcionalidades](#funcionalidades)
 - [Destaques técnicos](#destaques-técnicos)
+- [Demonstração visual](#demonstração-visual)
 - [Arquitetura](#arquitetura)
 - [Modelo de domínio](#modelo-de-domínio)
 - [Fluxo de autenticação](#fluxo-de-autenticação)
@@ -70,6 +71,18 @@ Este projeto demonstra conhecimentos em:
 - Configuração por variáveis de ambiente.
 - Execução das dependências com Docker Compose.
 
+## Demonstração visual
+
+As imagens abaixo mostram a API em execução, sua arquitetura, o modelo de domínio, a documentação interativa e alguns cenários de autorização e tratamento de erros.
+
+### Arquitetura do sistema
+
+![Arquitetura do sistema](docs/images/architecture.png)
+
+### Modelo de domínio
+
+![Diagrama do modelo de domínio](docs/images/domain-model.jpeg)
+
 ## Arquitetura
 
 A aplicação utiliza uma arquitetura em camadas. Os controllers recebem as requisições HTTP, os services concentram as regras de negócio e os repositories realizam o acesso aos dados por meio do Spring Data JPA.
@@ -112,6 +125,8 @@ flowchart TB
     Controller -. documentação .-> OpenAPI
     Service -. eventos operacionais .-> Logs
 ```
+
+Uma versão visual do fluxo acima também está disponível em [`docs/images/architecture.png`](docs/images/architecture.png).
 
 ### Organização do código
 
@@ -310,6 +325,18 @@ Para testar endpoints protegidos:
 4. Informe `Bearer <accessToken>`.
 5. Execute as operações autenticadas.
 
+### Swagger UI em execução
+
+![Swagger UI — Accounts e Clients](docs/images/swagger-overview-part1.png)
+
+![Swagger UI — Transactions, Users e Authentication](docs/images/swagger-overview-part2.png)
+
+### Autorização com JWT
+
+O Swagger utiliza o esquema `bearerAuth` para enviar o access token nas requisições protegidas.
+
+![Autorização Bearer JWT no Swagger](docs/images/swagger-jwt-authorization.png)
+
 ## Endpoints
 
 ### Autenticação
@@ -500,6 +527,18 @@ As exceções são convertidas pelo `GlobalExceptionHandler` para um formato con
 | `409` | Conflito, como CPF ou email duplicado |
 | `429` | Rate limit excedido |
 | `500` | Erro interno inesperado |
+
+### Exemplo de acesso negado
+
+Quando um usuário autenticado tenta acessar um recurso pertencente a outro usuário, a API responde com `403 Forbidden`.
+
+![Erro 403 por ownership](docs/images/error-forbidden-ownership.png)
+
+### Exemplo de recurso não encontrado
+
+Quando a conta solicitada não existe, a API responde com `404 Not Found` e uma mensagem padronizada.
+
+![Erro 404 de conta inexistente](docs/images/error-not-found.png)
 
 ## Testes
 
