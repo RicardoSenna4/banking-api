@@ -337,6 +337,12 @@ O Swagger utiliza o esquema `bearerAuth` para enviar o access token nas requisi�
 
 ![Autorização Bearer JWT no Swagger](docs/images/swagger-jwt-authorization.png)
 
+### Login
+
+O endpoint de login retorna os tokens necessários para autenticar as operações seguintes. Nesta captura, os dados de credencial, o comando `curl` e o JWT foram redigidos antes da publicação.
+
+![Login da API](docs/images/authentication-login-redacted.png)
+
 ## Endpoints
 
 ### Autenticação
@@ -452,6 +458,12 @@ curl -X POST http://localhost:8080/api/accounts \
   }'
 ```
 
+### Evidência visual da criação de conta
+
+A captura mostra o request de criação de uma conta `CHECKING` e a resposta `201 Created`. CPF, comando `curl` e token foram redigidos antes da publicação.
+
+![Criação de conta corrente](docs/images/account-creation-redacted.png)
+
 ### Realizar depósito
 
 ```bash
@@ -473,6 +485,12 @@ curl -X POST http://localhost:8080/api/auth/refresh \
     "refreshToken": "<REFRESH_TOKEN>"
   }'
 ```
+
+### Evidência visual do extrato
+
+O extrato é paginado e apresenta as transações associadas à conta. A área que continha o header de autorização foi redigida na imagem publicada.
+
+![Resposta do extrato](docs/images/statement-response-redacted.png)
 
 ## Segurança
 
