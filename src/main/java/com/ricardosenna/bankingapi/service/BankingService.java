@@ -13,6 +13,7 @@ import org.springframework.cache.annotation.Cacheable;
 import java.math.BigDecimal;
 import java.time.*;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class BankingService {
@@ -71,6 +72,7 @@ public class BankingService {
         validateClientOwnership(client, user);
         validateActiveClient(client);
         AccountEntity account = new AccountEntity(client, request.type(), request.withdrawFee() != null ? request.withdrawFee() : BigDecimal.ZERO, request.interestRate() != null ? request.interestRate() : BigDecimal.ZERO);
+        account.setAccountNumber(generateAccountNumber());
         return AccountResponse.from(accountRepository.save(account));
     }
     @Transactional public AccountResponse findByAccountNumber(Integer n) { return AccountResponse.from(findAccountOrThrow(n)); }
@@ -152,6 +154,13 @@ public class BankingService {
     }
 
     private AccountEntity findAccountOrThrow(Integer n) { return accountRepository.findByAccountNumber(n).orElseThrow(() -> new ResourceNotFoundException("Account not found with number: " + n)); }
+    private Integer generateAccountNumber() {
+        for (int attempt = 0; attempt < 20; attempt++) {
+            int candidate = ThreadLocalRandom.current().nextInt(100_000, 1_000_000);
+            if (!accountRepository.existsByAccountNumber(candidate)) return candidate;
+        }
+        throw new IllegalStateException("Unable to generate a unique account number");
+    }
     private void validateActiveClient(ClientEntity c) { if (c.getStatus() != ClientEntity.ClientStatus.ACTIVE) throw new BusinessRuleException("Client is blocked and cannot perform operations"); }
     private void validateOperationalAccount(AccountEntity a) { validateActiveClient(a.getClient()); if (!a.isActive()) throw new BusinessRuleException("Account is not active and cannot perform operations"); }
     private void validateClientOwnership(ClientEntity client, UserEntity user) { if (user != null && user.getRole() != UserEntity.Role.ADMIN && (client.getUser() == null || !user.getId().equals(client.getUser().getId()))) throw new org.springframework.security.access.AccessDeniedException("You are not allowed to access this client"); }

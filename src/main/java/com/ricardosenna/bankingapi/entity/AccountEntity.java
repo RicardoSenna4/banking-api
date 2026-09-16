@@ -6,13 +6,10 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Entity
 @Table(name = "accounts")
 public class AccountEntity {
-    private static final AtomicInteger ACCOUNT_NUMBER_COUNTER = new AtomicInteger(1000);
-
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(name = "account_number", nullable = false, unique = true, updatable = false)
@@ -33,11 +30,10 @@ public class AccountEntity {
     public AccountEntity(ClientEntity client, AccountType type, BigDecimal withdrawFee, BigDecimal interestRate) {
         this.client = client; this.type = type; this.status = AccountStatus.ACTIVE;
         this.balance = BigDecimal.ZERO; this.withdrawFee = withdrawFee; this.interestRate = interestRate;
-        this.accountNumber = ACCOUNT_NUMBER_COUNTER.incrementAndGet(); this.createdAt = Instant.now();
+        this.createdAt = Instant.now();
     }
     @PrePersist public void prePersist() {
         if (createdAt == null) createdAt = Instant.now();
-        if (accountNumber == null) accountNumber = ACCOUNT_NUMBER_COUNTER.incrementAndGet();
         if (status == null) status = AccountStatus.ACTIVE;
     }
     public Long getId() { return id; } public void setId(Long id) { this.id = id; }

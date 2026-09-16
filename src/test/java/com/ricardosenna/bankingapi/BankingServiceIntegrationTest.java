@@ -66,6 +66,18 @@ class BankingServiceIntegrationTest {
     }
 
     @Test
+    void shouldGenerateDifferentAccountNumbersForNewAccounts() {
+        var checking = bankingService.createAccount(
+                new AccountCreateRequest("12345678901", AccountType.CHECKING, BigDecimal.ZERO, null));
+        var savings = bankingService.createAccount(
+                new AccountCreateRequest("12345678901", AccountType.SAVINGS, BigDecimal.ZERO, null));
+
+        assertNotEquals(checking.accountNumber(), savings.accountNumber());
+        assertTrue(checking.accountNumber() >= 100_000);
+        assertTrue(savings.accountNumber() >= 100_000);
+    }
+
+    @Test
     void shouldCreateSavingsAccount() {
         var account = bankingService.createAccount(
                 new AccountCreateRequest("12345678901", AccountType.SAVINGS, null, BigDecimal.valueOf(0.05))
