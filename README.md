@@ -75,17 +75,25 @@ Para executar uma chamada, abra o endpoint, selecione **Try it out**, preencha o
 
 ### Login
 
+O endpoint `POST /api/auth/login` valida as credenciais do usuário e retorna um access token JWT, utilizado para autenticar as chamadas protegidas, além de um refresh token para renovação da sessão. A resposta também informa o tempo de expiração do access token.
+
 ![Login da API](docs/images/authentication-login.png)
 
 ### Criação de conta corrente
+
+O endpoint `POST /api/accounts` cria uma conta do tipo `CHECKING` associada ao cliente autenticado. A resposta `201 Created` apresenta o número da conta, o cliente relacionado, o status inicial `ACTIVE`, o saldo inicial e as configurações de tarifa e juros.
 
 ![Criação de conta corrente](docs/images/account-creation.png)
 
 ### Extrato
 
+O endpoint `GET /api/transactions/accounts/{accountNumber}/statement` retorna as movimentações da conta em formato paginado. Cada registro informa o tipo da transação, o status, o valor, as contas de origem e destino e o momento da operação. O extrato também permite filtros por tipo e período.
+
 ![Resposta do extrato](docs/images/statement-response.png)
 
 ### Controle de acesso
+
+O controle de acesso combina autenticação JWT, roles e ownership. Usuários autenticados só podem operar clientes e contas associados ao próprio usuário, enquanto administradores possuem permissões adicionais. A imagem abaixo mostra uma tentativa de acesso negada, com resposta `403 Forbidden`, e a segunda captura mostra o tratamento padronizado de uma conta inexistente, com resposta `404 Not Found`.
 
 ![Erro 403 por ownership](docs/images/error-forbidden-ownership.png)
 
